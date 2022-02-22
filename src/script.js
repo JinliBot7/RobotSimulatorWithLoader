@@ -193,7 +193,7 @@ manager.onLoad = function ( ) {
             // Update loadingBarElement
             // loadingBarElement.classList.add('ended')
             // loadingBarElement.style.transform = ''
-        }, 700)
+        }, 1000)
     loadingBarElement.classList.add('ended')
     loadingBarElement.style.transform = ''
     loadCompleteFlag = true
