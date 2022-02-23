@@ -197,6 +197,8 @@ manager.onLoad = function ( ) {
     loadingBarElement.classList.add('ended')
     loadingBarElement.style.transform = ''
     loadCompleteFlag = true
+    
+    
     const gui = new dat.GUI({ touchStyles: false })
     
     
@@ -308,13 +310,15 @@ manager.onLoad = function ( ) {
     // Change Transparency
  
     function changeTransparency(value){
+        scene.remove(overlay)
         object_list.forEach(function (item, index) {
+            console.log(item)
             item.material.transparent = true
             item.material.opacity=value
             transparencyObject.transparency = value
           })}
     const transparencyObject = {transparency:1}
-    //pivot_folder.add(transparencyObject,'transparency').min(0).max(1).step(0.01).name('Transparency').onChange(changeTransparency).listen()
+    pivot_folder.add(transparencyObject,'transparency').min(0).max(1).step(0.01).name('Transparency').onChange(changeTransparency).listen()
 
     // Show Axis
     const showAxis ={axisVisbleObject:false}
@@ -639,6 +643,7 @@ manager.onLoad = function ( ) {
     
     const tick_afterload = () =>
     {   
+        
         const elapsedTime = clock.getElapsedTime()
 
         // Update controls
