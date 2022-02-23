@@ -188,14 +188,23 @@ manager.onLoad = function ( ) {
     window.setTimeout(() =>
         {
             // Animate overlay
-            gsap.to(overlayMaterial.uniforms.uAlpha, { duration: 1, value: 0, delay: 0.5 })
+            gsap.to(overlayMaterial.uniforms.uAlpha, { duration: 2, value: 0, delay: 0.5 })
             
             // Update loadingBarElement
             // loadingBarElement.classList.add('ended')
             // loadingBarElement.style.transform = ''
-        }, 1000)
+        }, 500)
     loadingBarElement.classList.add('ended')
     loadingBarElement.style.transform = ''
+    window.setTimeout(() =>
+        {
+            // Animate overlay
+            scene.remove(overlay)
+            
+            // Update loadingBarElement
+            // loadingBarElement.classList.add('ended')
+            // loadingBarElement.style.transform = ''
+        }, 2000)
     loadCompleteFlag = true
     
     
@@ -310,7 +319,7 @@ manager.onLoad = function ( ) {
     // Change Transparency
  
     function changeTransparency(value){
-        scene.remove(overlay)
+        
         object_list.forEach(function (item, index) {
             console.log(item)
             item.material.transparent = true
