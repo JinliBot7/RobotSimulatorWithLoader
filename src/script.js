@@ -14,6 +14,9 @@ var globalTargetConfiguration
 var globalCurrentConfiguration
 var globalTotalError 
 var loadCompleteFlag = false
+var sequentialControllerFlag = false
+var targetNumber = 0
+var sequenceNumber = 0
 
 
 
@@ -141,6 +144,7 @@ const set_rotation_by_name = () =>
         }
     })
 }
+
 
 ////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 const manager = new THREE.LoadingManager()
@@ -520,6 +524,36 @@ manager.onLoad = function ( ) {
     // Save Button
     const position_folder = gui.addFolder( 'Target position' )
     
+    const disableButton = (name) =>
+    {
+        const configurationGUIarrary = position_folder.children
+                    for (var i = 0; i<savedPositionCount;i++)
+                    {
+                        configurationGUIarrary.forEach(value => 
+                            { 
+                                if (value._name == name)
+                                { 
+                                    value.disable()
+                                }
+                            })
+                    }
+    }
+
+    const enableButton = (name) =>
+    {   
+        const configurationGUIarrary = position_folder.children
+                    for (var i = 0; i<savedPositionCount;i++)
+                    {
+                        configurationGUIarrary.forEach(value => 
+                            { 
+                                if (value._name == name)
+                                { 
+                                    value.enable()
+                                }
+                            })
+                    }
+    }
+    
     const targetPositionArrary = []
     var savedPositionCount = 0
     
@@ -538,11 +572,20 @@ manager.onLoad = function ( ) {
             createPosition(savedPositionCount)
             targetPositionArrary.push(currentPosition)
             savedPositionCount += 1
+
+            //enable sequential control button
+            
+                
         }
 
         else
         {   // Change samePositionFlag
             
+            if (targetPositionArrary.length > 0)
+            {
+                enableButton('sequential movement')
+            }
+
             targetPositionArrary.forEach((value) => 
                 {   
                     
@@ -573,7 +616,9 @@ manager.onLoad = function ( ) {
     position_folder.add(debugObject,'savePosition').name('save configuration')
 
     debugObject.cleanConfiguration = () =>
-    {   const configurationGUIarrary = position_folder.children
+    {   
+        disableButton('sequential movement')
+        const configurationGUIarrary = position_folder.children
         for (var i = 0; i<savedPositionCount;i++)
         {
             configurationGUIarrary.forEach(value => 
@@ -586,8 +631,12 @@ manager.onLoad = function ( ) {
         }
         targetPositionArrary.splice(0,targetPositionArrary.length)
         savedPositionCount = 0
+        
     }
     position_folder.add(debugObject,'cleanConfiguration').name('clean configuration')
+
+    
+
     debugObject.robotSpeed = 5
     position_folder.add(debugObject,'robotSpeed').name('speed').min(1).max(10).step(0.01)
 
@@ -604,8 +653,10 @@ manager.onLoad = function ( ) {
             const targetPostion = targetPositionArrary[i]
             const ErrorVector = minusVector(targetPostion.jointAngle,currentPosition.jointAngle)
             if (absoluteValue(ErrorVector)<0.1/180*Math.PI)
-            {
-                alert('The robot is already in this configuration!')
+            {   
+               
+                 alert('The robot is already in this configuration!')
+
             }
             else 
             {   
@@ -620,7 +671,22 @@ manager.onLoad = function ( ) {
 
     // Move function
     
- 
+    // Sequential Movement Controller
+    
+
+
+
+    debugObject['sequentialMovemnt'] = () =>
+    {   
+        
+        targetNumber = targetPositionArrary.length
+        sequentialControllerFlag = true
+        
+    }
+    position_folder.add(debugObject,'sequentialMovemnt').name('sequential movement').disable()
+
+
+    
     
     const createPosition = (value) => 
     {      
@@ -660,6 +726,7 @@ manager.onLoad = function ( ) {
         
         if (moveFlag == true)
         {   
+            
             if (updateTatotalErrorFlag == true)
             {
                 globalCurrentConfiguration = [pivot2.rotation.y, pivot3.rotation.x, pivot4.rotation.x,
@@ -688,6 +755,7 @@ manager.onLoad = function ( ) {
                 updateDebug4()
                 updateDebug5()
                 updateDebug6()
+                
 
                 const configurationGUIarrary = position_folder.children
                 for (var i = 0; i<savedPositionCount;i++)
@@ -700,6 +768,10 @@ manager.onLoad = function ( ) {
                             }
                         })
                 }
+                disableButton('sequential movement')
+                disableButton('save configuration')
+                disableButton('clean configuration')
+                disableButton('Home Position')
 
             }
             else {
@@ -717,12 +789,107 @@ manager.onLoad = function ( ) {
                             }
                         })
                 }
-                alert('The robot reached target position')
+                enableButton('sequential movement')
+                enableButton('save configuration')
+                enableButton('clean configuration')
+                enableButton('Home Position')
+                //alert('The robot reached target position')
             }
-            // console.log('current'+globalCurrentConfiguration)
-            // console.log('target'+globalTargetConfiguration)
+
             
         }
+
+
+        if (sequentialControllerFlag == true)
+        {   
+            
+            console.log(sequenceNumber)
+            globalTargetConfiguration = targetPositionArrary[sequenceNumber].jointAngle
+            if (updateTatotalErrorFlag == true)
+            {
+                globalCurrentConfiguration = [pivot2.rotation.y, pivot3.rotation.x, pivot4.rotation.x,
+                    pivot5.rotation.x,pivot6.rotation.z]
+                globalTotalError = minusVector(globalTargetConfiguration,globalCurrentConfiguration)
+                updateTatotalErrorFlag = false
+            }
+            globalCurrentConfiguration = [pivot2.rotation.y, pivot3.rotation.x, pivot4.rotation.x,
+                pivot5.rotation.x,pivot6.rotation.z]
+            const currentErrorVector = minusVector(globalTargetConfiguration,globalCurrentConfiguration)
+            const ratio = divideVector(currentErrorVector,globalTotalError)
+            const cosinedRatio = getCosineRatio(ratio)
+            const speed = 0.001*debugObject.robotSpeed
+
+            
+            if (absoluteValue(currentErrorVector)>0.1/180*Math.PI)
+            { 
+                pivot2.rotation.y += speed*globalTotalError[0]*cosinedRatio[0]
+                pivot3.rotation.x += speed*globalTotalError[1]*cosinedRatio[1]
+                pivot4.rotation.x += speed*globalTotalError[2]*cosinedRatio[2]
+                pivot5.rotation.x += speed*globalTotalError[3]*cosinedRatio[3]
+                pivot6.rotation.z += speed*globalTotalError[4]*cosinedRatio[4]
+                update_EF_Position()
+                updateDebug2()
+                updateDebug3()
+                updateDebug4()
+                updateDebug5()
+                updateDebug6()
+                
+
+                const configurationGUIarrary = position_folder.children
+                for (var i = 0; i<savedPositionCount;i++)
+                {
+                    configurationGUIarrary.forEach(value => 
+                        { 
+                            if (value._name == 'Configuration '+`${i}`)
+                            { 
+                                value.disable()
+                            }
+                        })
+                }
+                disableButton('sequential movement')
+                disableButton('save configuration')
+                disableButton('clean configuration')
+                disableButton('Home Position')
+
+            }
+            else {
+                if (sequenceNumber < targetNumber-1)
+                {
+                    sequenceNumber += 1
+                    updateTatotalErrorFlag = true
+                }
+                else
+                {
+                    sequentialControllerFlag = false
+                    updateTatotalErrorFlag = true
+                    const configurationGUIarrary = position_folder.children
+                    for (var i = 0; i<savedPositionCount;i++)
+                    {
+                        configurationGUIarrary.forEach(value => 
+                            { 
+                                if (value._name == 'Configuration '+`${i}`)
+                                {   
+                                    value.enable()
+                                }
+                            })
+                    }
+                    enableButton('sequential movement')
+                    enableButton('save configuration')
+                    enableButton('clean configuration')
+                    enableButton('Home Position')
+                    sequenceNumber = 0
+                }
+                
+                //alert('The robot reached target position')
+            }
+
+            
+        }
+
+
+
+
+        
 
         // Render
         renderer.render(scene, camera)
